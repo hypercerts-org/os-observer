@@ -24,6 +24,7 @@ with trusted_developers as (
     project_id as onchain_builder_project_id,
     sample_date
   from metrics.int_superchain_s7_trusted_developers
+  where sample_date between @start_dt and @end_dt
 ),
 
 eligible_devtooling_repos as (
@@ -32,7 +33,9 @@ eligible_devtooling_repos as (
     project_id as devtooling_project_id,
     sample_date
   from metrics.int_superchain_s7_devtooling_repo_eligibility
-  where is_eligible
+  where 
+    is_eligible
+    and sample_date between @start_dt and @end_dt
 ),
 
 developer_events as (

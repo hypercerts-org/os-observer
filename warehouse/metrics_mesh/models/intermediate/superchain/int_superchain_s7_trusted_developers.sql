@@ -68,7 +68,7 @@ eligible_developers as (
       last_commit,
       first_commit
     ) >= @active_months_threshold
-    and date(last_commit) >= current_date() - interval @last_commit_threshold_months month
+    and date(last_commit) >= current_date() - interval '@last_commit_threshold_months' month
 )
 
 select

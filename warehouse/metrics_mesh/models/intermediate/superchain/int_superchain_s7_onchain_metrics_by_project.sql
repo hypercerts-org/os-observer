@@ -23,7 +23,7 @@ MODEL (
 
 with base_events as (
   select
-    timestamp_trunc(events.block_timestamp, month) as sample_date,
+    date_trunc('month', events.block_timestamp) as sample_date,
     events.project_id,
     events.chain,
     events.transaction_hash,
@@ -37,7 +37,9 @@ with base_events as (
     on events.project_id = builders.project_id
   left outer join metrics.int_superchain_onchain_user_labels as users
     on events.from_artifact_id = users.artifact_id
-  where events.block_timestamp between @start_dt and @end_dt
+  where 
+    events.block_timestamp between @start_dt and @end_dt
+    and builders.is_eligible = true
 ),
 
 -- Calculate projects per event type and transaction
@@ -54,17 +56,18 @@ events_per_project as (
 
 enriched_events as (
   select
-    be.*,
+    base_events.*,
     (case
-      when be.event_type = 'TRANSACTION_EVENT'
+      when base_events.event_type = 'TRANSACTION_EVENT'
         then @project_weight_per_tx_event
-      when be.event_type = 'TRACE_EVENT'
+      when base_events.event_type in ('TRACE_EVENT', 'AA_EVENT')
         then @project_weight_per_trace_event
-    end) / ep.num_projects_per_event as project_weight
-  from base_events be
-  inner join events_per_project ep
-    on be.transaction_hash = ep.transaction_hash
-    and be.event_type = ep.event_type
+    end) / events_per_project.num_projects_per_event as project_weight
+  from base_events
+  inner join events_per_project
+    on
+      base_events.transaction_hash = events_per_project.transaction_hash
+      and base_events.event_type = events_per_project.event_type
 ),
 
 -- Transaction counts
@@ -103,7 +106,7 @@ trace_count as (
     'trace_count' as metric_name,
     count(distinct transaction_hash) as amount
   from enriched_events
-  where event_type = 'TRACE_EVENT'
+  where event_type in ('TRACE_EVENT', 'AA_EVENT')
   group by 1, 2, 3
 ),
 
@@ -116,7 +119,7 @@ trace_count_bot_filtered as (
     count(distinct transaction_hash) as amount
   from enriched_events
   where
-    event_type = 'TRACE_EVENT'
+    event_type in ('TRACE_EVENT', 'AA_EVENT')
     and is_bot = false
   group by 1, 2, 3
 ),

@@ -22,6 +22,7 @@ with trusted_developers as (
     developer_id,
     sample_date
   from metrics.int_superchain_s7_trusted_developers
+  where sample_date between @start_dt and @end_dt
 ),
 
 -- Package dependency counts
@@ -32,6 +33,7 @@ all_dependencies as (
     count(distinct onchain_builder_project_id) as amount,
     sample_date
   from metrics.int_superchain_s7_project_to_dependency_graph
+  where sample_date between @start_dt and @end_dt
   group by devtooling_project_id, sample_date
 ),
 
@@ -42,7 +44,9 @@ npm_dependencies as (
     count(distinct onchain_builder_project_id) as amount,
     sample_date
   from metrics.int_superchain_s7_project_to_dependency_graph
-  where dependency_source = 'NPM'
+  where 
+    dependency_source = 'NPM'
+    and sample_date between @start_dt and @end_dt
   group by devtooling_project_id, sample_date
 ),
 
@@ -53,7 +57,9 @@ rust_dependencies as (
     count(distinct onchain_builder_project_id) as amount,
     sample_date
   from metrics.int_superchain_s7_project_to_dependency_graph
-  where dependency_source = 'CARGO'
+  where 
+    dependency_source = 'CARGO'
+    and sample_date between @start_dt and @end_dt
   group by devtooling_project_id, sample_date
 ),
 
@@ -65,6 +71,7 @@ dev_connections as (
     count(distinct developer_id) as amount,
     sample_date
   from metrics.int_superchain_s7_project_to_developer_graph
+  where sample_date between @start_dt and @end_dt
   group by devtooling_project_id, sample_date
 ),
 
@@ -97,6 +104,7 @@ repo_metrics as (
   -- Join to get sample dates from developer graph
   inner join metrics.int_superchain_s7_project_to_developer_graph as dev_graph
     on repos.project_id = dev_graph.devtooling_project_id
+    and dev_graph.sample_date between @start_dt and @end_dt
   group by repos.project_id, metrics.metric_name, metrics.amount, dev_graph.sample_date
 ),
 
@@ -131,6 +139,7 @@ package_metrics as (
     count(distinct dependency_name) as amount,
     sample_date
   from metrics.int_superchain_s7_project_to_dependency_graph
+  where sample_date between @start_dt and @end_dt
   group by devtooling_project_id, sample_date
 )
 

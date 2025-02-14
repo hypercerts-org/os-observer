@@ -29,7 +29,7 @@ select
   created_at,
   updated_at,
   case when (
-    current_timestamp() + interval @lookback_days day
+    current_timestamp() + interval '@lookback_days' day
       >= last_release_published
     or num_packages_in_deps_dev > 0
     or num_dependent_repos_in_oso > 0

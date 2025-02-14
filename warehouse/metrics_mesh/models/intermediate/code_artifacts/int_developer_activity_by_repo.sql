@@ -4,7 +4,6 @@ MODEL (
   kind FULL,
 );
 
-
 with developers as (
   select distinct
     users.user_id as developer_id,
@@ -15,7 +14,7 @@ with developers as (
     on events.from_artifact_id = users.user_id
   where
     events.event_type = 'COMMIT_CODE'
-    and not regexp_matches( -- TODO: confirm this will work in Trino too
+    and not regexp_matches(
       lower(users.display_name),
       '(^|[^a-z0-9_])bot([^a-z0-9_]|$)|bot$'
     )

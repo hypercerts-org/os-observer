@@ -25,6 +25,7 @@ with onchain_builder_projects as (
     is_eligible,
     CAST(sample_date AS TIMESTAMP) as sample_date
   from metrics.int_superchain_s7_onchain_builder_eligibility
+  where sample_date between @start_dt and @end_dt
 ),
 
 devtooling_projects as (
@@ -34,6 +35,7 @@ devtooling_projects as (
     is_eligible,
     CAST(sample_date AS TIMESTAMP) as sample_date
   from metrics.int_superchain_s7_devtooling_repo_eligibility
+  where sample_date between @start_dt and @end_dt
 )
 
 select

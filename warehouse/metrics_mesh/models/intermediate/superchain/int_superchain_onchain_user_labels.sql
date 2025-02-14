@@ -10,8 +10,7 @@ with user_labels as (
     artifacts.user_source = 'FARCASTER' as is_farcaster_user,
     coalesce(bots.artifact_id is not null, false) as is_bot
   from metrics.int_artifacts_by_user as artifacts
-  left outer join @oso_source('bigquery.oso.int_superchain_potential_bots')
-    as bots
+  left outer join @oso_source('bigquery.oso.int_superchain_potential_bots') as bots
     on artifacts.artifact_id = bots.artifact_id
 )
 
