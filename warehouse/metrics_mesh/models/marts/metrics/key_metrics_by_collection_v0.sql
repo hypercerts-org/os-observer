@@ -1,6 +1,7 @@
 MODEL (
   name metrics.key_metrics_by_collection_v0,
   kind FULL,
+  partitioned_by 'sample_date',
   tags (
   'export'
   ),
