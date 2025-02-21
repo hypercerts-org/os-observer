@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import _ from "lodash";
 import { PlasmicComponent } from "@plasmicapp/loader-nextjs";
 import { PLASMIC } from "../../../plasmic-init";
 import { PlasmicClientRootProvider } from "../../../plasmic-init-client";
 import {
   cachedGetCollectionByName,
-  cachedGetCodeMetricsByProjectIds,
-  cachedGetOnchainMetricsByProjectIds,
+  cachedGetProjectsByIds,
+  cachedGetMetricsByIds,
+  cachedGetKeyMetricsByProject,
   cachedGetProjectIdsByCollectionName,
 } from "../../../lib/clickhouse/cached-queries";
+import { COLLECTION_PAGE_PROJECT_METRIC_IDS } from "../../../lib/clickhouse/metrics-config";
 import { logger } from "../../../lib/logger";
 import { catchallPathToString } from "../../../lib/paths";
 
@@ -88,16 +91,37 @@ export default async function CollectionPage(props: CollectionPageProps) {
 
   // Parallelize getting things related to the project
   const projectIds = projectIdArray.map((x) => x.project_id);
+  const metricIds = [...COLLECTION_PAGE_PROJECT_METRIC_IDS];
   const data2 = await Promise.all([
-    cachedGetCodeMetricsByProjectIds({
+    cachedGetProjectsByIds({ projectIds }),
+    cachedGetMetricsByIds({ metricIds }),
+    cachedGetKeyMetricsByProject({
       projectIds,
-    }),
-    cachedGetOnchainMetricsByProjectIds({
-      projectIds,
+      metricIds,
     }),
   ]);
-  const codeMetrics = data2[0];
-  const onchainMetrics = data2[1];
+  const projects = data2[0];
+  const projectsMap = _.keyBy(projects, (x) => x.project_id);
+  const allMetrics = data2[1];
+  const metricsMap = _.keyBy(allMetrics, (x) => x.metric_id);
+  const keyMetricsData = data2[2];
+  const keyMetrics = keyMetricsData.map((x) => ({
+    ...x,
+    project_display_name: projectsMap[x.project_id]?.display_name,
+    metric_display_name: metricsMap[x.metric_id]?.display_name,
+  }));
+  const metricsByProjectId = _.groupBy(keyMetrics, (x) => x.project_id);
+  const projectsTable = _.values(
+    _.mapValues(metricsByProjectId, (x) => {
+      return {
+        Project: x[0].project_display_name,
+        ..._.fromPairs(x.map((y) => [y.metric_display_name, y.amount])),
+      };
+    }),
+  );
+  console.log("!!!");
+  console.log(collection);
+  console.log(keyMetrics);
 
   // Get Plasmic component
   const plasmicData = await cachedFetchComponent(PLASMIC_COMPONENT);
@@ -116,8 +140,7 @@ export default async function CollectionPage(props: CollectionPageProps) {
         component={compMeta.displayName}
         componentProps={{
           metadata: collection,
-          codeMetrics,
-          onchainMetrics,
+          projectsTable,
         }}
       />
     </PlasmicClientRootProvider>

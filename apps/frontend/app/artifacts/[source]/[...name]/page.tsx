@@ -6,8 +6,10 @@ import { PLASMIC } from "../../../../plasmic-init";
 import { PlasmicClientRootProvider } from "../../../../plasmic-init-client";
 import {
   cachedGetArtifactByName,
-  cachedGetCodeMetricsByArtifactIds,
+  cachedGetMetricsByIds,
+  cachedGetKeyMetricsByArtifact,
 } from "../../../../lib/clickhouse/cached-queries";
+import { ARTIFACT_PAGE_CODE_METRICS_IDS } from "../../../../lib/clickhouse/metrics-config";
 import { logger } from "../../../../lib/logger";
 
 const PLASMIC_COMPONENT = "ArtifactPage";
@@ -30,90 +32,29 @@ export async function generateStaticParams() {
 */
 
 async function getDefaultProps() {
-  return {
-    keyMetrics: [],
-    metricChoices: [],
-  };
+  return [];
 }
 
 async function getCodeProps(artifactId: string) {
-  const codeMetrics = await cachedGetCodeMetricsByArtifactIds({
-    artifactIds: [artifactId],
-  });
-  const keyMetrics = [
-    {
-      title: "Star Count",
-      subtitle: "For the repository",
-      value: _.sumBy(codeMetrics, "star_count"),
-    },
-    {
-      title: "Forks",
-      subtitle: "For the repository",
-      value: _.sumBy(codeMetrics, "fork_count"),
-    },
-    {
-      title: "Total Contributors",
-      subtitle: "All time",
-      value: _.sumBy(codeMetrics, "contributor_count"),
-    },
-    {
-      title: "Active Contributors",
-      subtitle: "Who have been active in last 6 months",
-      value: _.sumBy(codeMetrics, "contributor_count_6_months"),
-    },
-    {
-      title: "New Contributors",
-      subtitle: "Who joined in last 6 months",
-      value: _.sumBy(codeMetrics, "new_contributor_count_6_months"),
-    },
-    {
-      title: "Active Developers",
-      subtitle: "Who committed code in last 6 months",
-      value: _.sumBy(codeMetrics, "active_developer_count_6_months"),
-    },
-    {
-      title: "Recent Commits",
-      subtitle: "Commits within the last 6 months",
-      value: _.sumBy(codeMetrics, "commit_count_6_months"),
-    },
-  ];
-  const metricChoices = [
-    {
-      label: "Active Developers (30d)",
-      value: "0x9o4M40uii5KDWi3B5OQLk97SgpZw81aDpL53a/g+c=",
-      selected: true,
-    },
-    {
-      label: "Parttime Developers (30d)",
-      value: "j639+oJeAtYFJvaMjF9JHGfw7U/2u3L9XlErnrLKLhQ=",
-      selected: false,
-    },
-    {
-      label: "Fulltime Developers (30d)",
-      value: "vlFMX++GcaW2nPGuwTs+PMXFqlr/s3tnTzG1n7gXyx8=",
-      selected: false,
-    },
-    {
-      label: "Commits",
-      value: "Oh9Xi1a2ovZScVN77o1ye4sInynC4t3yQoWvvHdqkdQ=",
-      selected: true,
-    },
-    {
-      label: "Forks",
-      value: "tx4sCflOBp/pKjncprKr9FGuhTgeaj3hnpIzTON650g=",
-      selected: false,
-    },
-    {
-      label: "Stars",
-      value: "SrsN3Wc2CSLRktIZB+RqPXGoH4o7nj7s23tm+skPZzw=",
-      selected: true,
-    },
-  ];
+  // Parallelize getting things related to the project
+  const metricIds = [...ARTIFACT_PAGE_CODE_METRICS_IDS];
+  const data = await Promise.all([
+    cachedGetMetricsByIds({ metricIds }),
+    cachedGetKeyMetricsByArtifact({
+      artifactIds: [artifactId],
+      metricIds,
+    }),
+  ]);
+  const allMetrics = data[0];
+  const metricsMap = _.keyBy(allMetrics, (x) => x.metric_id);
+  const keyMetricsData = data[1];
+  const keyMetrics = keyMetricsData.map((x) => ({
+    ...x,
+    display_name: metricsMap[x.metric_id]?.display_name,
+    description: metricsMap[x.metric_id]?.description,
+  }));
 
-  return {
-    keyMetrics,
-    metricChoices,
-  };
+  return keyMetrics;
 }
 
 const cachedFetchComponent = cache(async (componentName: string) => {
@@ -171,10 +112,13 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
   }
   const artifact = artifactArray[0];
   const artifactId = artifact.artifact_id;
-  const metricProps =
+  const keyMetrics =
     source === "GITHUB"
       ? await getCodeProps(artifactId)
       : await getDefaultProps();
+  console.log("!!!");
+  console.log(artifact);
+  console.log(keyMetrics);
 
   //console.log(artifact);
   const plasmicData = await cachedFetchComponent(PLASMIC_COMPONENT);
@@ -193,7 +137,7 @@ export default async function ArtifactPage(props: ArtifactPageProps) {
         component={compMeta.displayName}
         componentProps={{
           metadata: artifact,
-          ...metricProps,
+          keyMetrics,
         }}
       />
     </PlasmicClientRootProvider>
