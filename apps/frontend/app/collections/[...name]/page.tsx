@@ -121,7 +121,7 @@ export default async function CollectionPage(props: CollectionPageProps) {
   );
   console.log("!!!");
   console.log(collection);
-  console.log(keyMetrics);
+  console.log(projectsTable);
 
   // Get Plasmic component
   const plasmicData = await cachedFetchComponent(PLASMIC_COMPONENT);
