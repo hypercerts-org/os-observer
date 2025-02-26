@@ -1,17 +1,20 @@
 import { notFound } from "next/navigation";
+import _ from "lodash";
 import { cache } from "react";
 import { PlasmicComponent } from "@plasmicapp/loader-nextjs";
 import { PLASMIC } from "../../../plasmic-init";
 import { PlasmicClientRootProvider } from "../../../plasmic-init-client";
 import {
   cachedGetProjectByName,
-  cachedGetCodeMetricsByProjectIds,
-  cachedGetOnchainMetricsByProjectIds,
-  cachedGetAllEventTypes,
+  cachedGetKeyMetricsByProject,
+  cachedGetMetricsByIds,
 } from "../../../lib/clickhouse/cached-queries";
+import { PROJECT_PAGE_METRIC_IDS } from "../../../lib/clickhouse/metrics-config";
 import { logger } from "../../../lib/logger";
 import { catchallPathToString } from "../../../lib/paths";
 
+const PROJECT_SOURCE = "OSS_DIRECTORY";
+const PROJECT_NAMESPACE = "oso";
 const PLASMIC_COMPONENT = "ProjectPage";
 //export const dynamic = STATIC_EXPORT ? "force-static" : "force-dynamic";
 //export const dynamic = "force-static";
@@ -60,6 +63,8 @@ export default async function ProjectPage(props: ProjectPageProps) {
   // Get project metadata from the database
   const name = catchallPathToString(params.name);
   const projectArray = await cachedGetProjectByName({
+    projectSource: PROJECT_SOURCE,
+    projectNamespace: PROJECT_NAMESPACE,
     projectName: name,
   });
   if (!Array.isArray(projectArray) || projectArray.length < 1) {
@@ -71,18 +76,25 @@ export default async function ProjectPage(props: ProjectPageProps) {
   //console.log("project", project);
 
   // Parallelize getting things related to the project
+  const metricIds = [...PROJECT_PAGE_METRIC_IDS];
   const data = await Promise.all([
-    cachedGetAllEventTypes(),
-    cachedGetCodeMetricsByProjectIds({
+    cachedGetMetricsByIds({ metricIds }),
+    cachedGetKeyMetricsByProject({
       projectIds: [projectId],
-    }),
-    cachedGetOnchainMetricsByProjectIds({
-      projectIds: [projectId],
+      metricIds,
     }),
   ]);
-  const eventTypes = data[0];
-  const codeMetrics = data[1];
-  const onchainMetrics = data[2];
+  const allMetrics = data[0];
+  const metricsMap = _.keyBy(allMetrics, (x) => x.metric_id);
+  const keyMetricsData = data[1];
+  const keyMetrics = keyMetricsData.map((x) => ({
+    ...x,
+    display_name: metricsMap[x.metric_id]?.display_name,
+    description: metricsMap[x.metric_id]?.description,
+  }));
+  console.log("!!!");
+  console.log(project);
+  console.log(keyMetrics);
 
   // Get Plasmic component
   const plasmicData = await cachedFetchComponent(PLASMIC_COMPONENT);
@@ -101,9 +113,7 @@ export default async function ProjectPage(props: ProjectPageProps) {
         component={compMeta.displayName}
         componentProps={{
           metadata: project,
-          codeMetrics,
-          onchainMetrics,
-          eventTypes,
+          keyMetrics,
         }}
       />
     </PlasmicClientRootProvider>
