@@ -1,0 +1,97 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: production-consumer-trino
+spec:
+  values:
+    service:
+      annotations:
+        tailscale.com/expose: "true"
+    env:
+      - name: TRINO_GCS_KEY_ID
+        value: gcp:secretmanager:production-mcs-gcs-key-id/versions/latest
+      - name: TRINO_GCS_SECRET
+        value: gcp:secretmanager:production-mcs-gcs-secret/versions/latest
+    serviceAccount:
+      name: production-consumer-trino
+    coordinator:
+      resources:
+        requests:
+          cpu: 1200m
+          memory: 10000Mi
+      tolerations:
+        - key: pool_type
+          operator: Equal
+          value: consumer-trino-coordinator
+          effect: NoSchedule
+      nodeSelector:
+        pool_type: consumer-trino-coordinator
+      jvm:
+        maxHeapSize: "17G"
+      additionalJVMConfig:
+        - "--add-opens=java.base/java.nio=ALL-UNNAMED"
+
+    worker:
+      resources:
+        requests:
+          cpu: 7400m
+          memory: 40000Mi
+      tolerations:
+        - key: pool_type
+          operator: Equal
+          value: consumer-trino-worker
+          effect: NoSchedule
+      nodeSelector:
+        pool_type: consumer-trino-worker
+      config:
+        query:
+          maxMemoryPerNode: 15GB
+      jvm:
+        maxHeapSize: "35G"
+      additionalJVMConfig:
+        - "--add-opens=java.base/java.nio=ALL-UNNAMED"
+
+    additionalConfigProperties:
+      - retry-policy=QUERY
+    additionalExchangeManagerProperties:
+      - "exchange.sink-buffers-per-partition=6"
+      - "exchange.sink-buffer-pool-min-size=6"
+      - "exchange.source-concurrent-readers=6"
+      - "exchange.s3.region=us"
+      - "exchange.s3.aws-access-key=${ENV:TRINO_GCS_KEY_ID}"
+      - "exchange.s3.aws-secret-key=${ENV:TRINO_GCS_SECRET}"
+      - "exchange.s3.endpoint=https://storage.googleapis.com"
+      
+    server:
+      exchangeManager:
+        name: filesystem
+        baseDir: gs://oso-dataset-transfer-bucket/trino-exchange/
+      config:
+        query:
+          maxMemory: "100GB"
+      workers: 1
+      autoscaling:
+        enabled: true
+        maxReplicas: 5
+        targetCPUUtilizationPercentage: 20
+        behavior:
+          scaleDown:
+            stabilizationWindowSeconds: 600
+            policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+          scaleUp:
+            stabilizationWindowSeconds: 0
+            policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+            - type: Pods
+              value: 2 
+              periodSeconds: 15
+            selectPolicy: Max
+    catalogs:
+      bigquery: |
+        connector.name=bigquery
+        bigquery.project-id=opensource-observer
