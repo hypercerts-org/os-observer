@@ -3,19 +3,20 @@
 import { cache } from "react";
 import {
   GET_ARTIFACTS_BY_IDS,
-  GET_ARTIFACT_BY_SOURCE_NAMESPACE_NAME,
-  GET_ARTIFACT_BY_SOURCE_NAME,
+  GET_ARTIFACT_BY_NAME,
   GET_ARTIFACT_IDS_BY_PROJECT_IDS,
+  GET_PROJECTS_BY_IDS,
   GET_PROJECT_BY_NAME,
   GET_PROJECT_IDS_BY_COLLECTION_NAME,
   GET_COLLECTIONS_BY_IDS,
   GET_COLLECTION_BY_NAME,
   GET_COLLECTION_IDS_BY_PROJECT_IDS,
+  GET_METRICS_BY_IDS,
   GET_METRIC_BY_NAME,
-  GET_CODE_METRICS_BY_PROJECT,
-  GET_ONCHAIN_METRICS_BY_PROJECT,
+  GET_KEY_METRICS_BY_ARTIFACT,
+  GET_KEY_METRICS_BY_PROJECT,
+  GET_KEY_METRICS_BY_COLLECTION,
   GET_ALL_EVENT_TYPES,
-  GET_CODE_METRICS_BY_ARTIFACT,
 } from "./queries";
 import { getClickhouseClient } from "../clients/clickhouse";
 
@@ -44,8 +45,20 @@ const cachedGetAllEventTypes = cache(async () =>
   }),
 );
 
+const cachedGetProjectsByIds = cache(
+  async (variables: { projectIds: string[] }) =>
+    queryWrapper({
+      query: GET_PROJECTS_BY_IDS,
+      variables,
+    }),
+);
+
 const cachedGetProjectByName = cache(
-  async (variables: { projectName: string }) =>
+  async (variables: {
+    projectSource: string;
+    projectNamespace: string;
+    projectName: string;
+  }) =>
     queryWrapper({
       query: GET_PROJECT_BY_NAME,
       variables,
@@ -75,18 +88,13 @@ const cachedGetArtifactsByIds = cache(
 const cachedGetArtifactByName = cache(
   async (variables: {
     artifactSource: string;
-    artifactNamespace?: string;
+    artifactNamespace: string;
     artifactName: string;
   }) =>
-    variables.artifactNamespace
-      ? queryWrapper({
-          query: GET_ARTIFACT_BY_SOURCE_NAMESPACE_NAME,
-          variables,
-        })
-      : queryWrapper({
-          query: GET_ARTIFACT_BY_SOURCE_NAME,
-          variables,
-        }),
+    queryWrapper({
+      query: GET_ARTIFACT_BY_NAME,
+      variables,
+    }),
 );
 
 const cachedGetArtifactIdsByProjectIds = cache(
@@ -125,6 +133,14 @@ const cachedGetCollectionIdsByProjectIds = cache(
     }),
 );
 
+const cachedGetMetricsByIds = cache(
+  async (variables: { metricIds: string[] }) =>
+    queryWrapper({
+      query: GET_METRICS_BY_IDS,
+      variables,
+    }),
+);
+
 const cachedGetMetricByName = cache(
   async (variables: {
     metricSource: string;
@@ -137,26 +153,26 @@ const cachedGetMetricByName = cache(
     }),
 );
 
-const cachedGetCodeMetricsByProjectIds = cache(
-  async (variables: { projectIds: string[] }) =>
+const cachedGetKeyMetricsByArtifact = cache(
+  async (variables: { metricIds: string[]; artifactIds: string[] }) =>
     queryWrapper({
-      query: GET_CODE_METRICS_BY_PROJECT,
+      query: GET_KEY_METRICS_BY_ARTIFACT,
       variables,
     }),
 );
 
-const cachedGetOnchainMetricsByProjectIds = cache(
-  async (variables: { projectIds: string[] }) =>
+const cachedGetKeyMetricsByProject = cache(
+  async (variables: { metricIds: string[]; projectIds: string[] }) =>
     queryWrapper({
-      query: GET_ONCHAIN_METRICS_BY_PROJECT,
+      query: GET_KEY_METRICS_BY_PROJECT,
       variables,
     }),
 );
 
-const cachedGetCodeMetricsByArtifactIds = cache(
-  async (variables: { artifactIds: string[] }) =>
+const cachedGetKeyMetricsByCollection = cache(
+  async (variables: { metricIds: string[]; collectionIds: string[] }) =>
     queryWrapper({
-      query: GET_CODE_METRICS_BY_ARTIFACT,
+      query: GET_KEY_METRICS_BY_COLLECTION,
       variables,
     }),
 );
@@ -165,14 +181,16 @@ export {
   cachedGetArtifactsByIds,
   cachedGetArtifactByName,
   cachedGetArtifactIdsByProjectIds,
+  cachedGetProjectsByIds,
   cachedGetProjectByName,
   cachedGetProjectIdsByCollectionName,
   cachedGetCollectionByName,
   cachedGetCollectionsByIds,
   cachedGetCollectionIdsByProjectIds,
+  cachedGetMetricsByIds,
   cachedGetMetricByName,
-  cachedGetCodeMetricsByProjectIds,
-  cachedGetOnchainMetricsByProjectIds,
+  cachedGetKeyMetricsByArtifact,
+  cachedGetKeyMetricsByProject,
+  cachedGetKeyMetricsByCollection,
   cachedGetAllEventTypes,
-  cachedGetCodeMetricsByArtifactIds,
 };
