@@ -62,6 +62,20 @@ TABLE_MAPPING: TableMappingConfig = {
         ),
         table="bigquery.optimism_superchain_raw_onchain_data.traces",
     ),
+    "opensource-observer.optimism_superchain_4337_account_abstraction_data.useroperationevent_logs_v1": TableMappingDestination(
+        row_restriction=RowRestriction(
+            time_column="dt",
+            wheres=["chain_id = 252"],
+        ),
+        table="bigquery.optimism_superchain_4337_account_abstraction_data.useroperationevent_logs_v1",
+    ),
+    "opensource-observer.optimism_superchain_4337_account_abstraction_data.enriched_entrypoint_traces_v1": TableMappingDestination(
+        row_restriction=RowRestriction(
+            time_column="dt",
+            wheres=["chain_id = 252"],
+        ),
+        table="bigquery.optimism_superchain_4337_account_abstraction_data.enriched_entrypoint_traces_v1",
+    ),
 }
 
 defillama_tables = {

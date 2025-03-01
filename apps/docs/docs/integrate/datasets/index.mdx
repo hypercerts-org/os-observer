@@ -67,6 +67,13 @@ Here are some of our featured public datasets:
     </div>
     <h3>Superchain</h3>
   </a>
+  <a href="#superchain-4337" className="datalink-card">
+    <div className="datalink-header">
+      <img src={OptimismLogo} alt="Optimism Logo" className="datalink-logo" />
+      <span className="tag">Updated daily</span>
+    </div>
+    <h3>Superchain 4337</h3>
+  </a>
   <a href="#arbitrum-one" className="datalink-card">
     <div className="datalink-header">
       <img src={ArbitrumLogo} alt="Arbitrum Logo" className="datalink-logo" />
@@ -473,6 +480,37 @@ For example, to get all transactions to the 4337 EntryPoint contracts for all OP
     )
   group by dt, chain
   order by dt, chain
+```
+
+### Superchain 4337
+
+<img src={OptimismLogo} width="100" />
+
+<Button
+  size={"compact"}
+  color={"blue"}
+  target={"_blank"}
+  link={
+    "https://console.cloud.google.com/bigquery/analytics-hub/exchanges/projects/87806073973/locations/us/dataExchanges/open_source_observer_190181416ae/listings/superchain_4337_account_abstraction_data"
+  }
+  children={"Subscribe on BigQuery"}
+/>{" "}
+
+The Superchain 4337 dataset provides comprehensive data about ERC-4337 (Account Abstraction) activity across all OP Stack chains. This dataset is crucial for understanding the adoption and usage patterns of smart contract wallets, bundlers, and paymasters in the Superchain ecosystem. The data helps track which applications are leading the way in improving onchain UX through account abstraction.
+
+All tables are partitioned by date (`dt`) and clustered by chain name (`chain`). The dataset includes decoded UserOps and Paymaster IDs to trace events from unique user smart contract wallet addresses to their wallet providers, paymasters, bundlers, and the applications they interact with.
+
+For example, to see which paymasters are handling the most UserOperations across all chains:
+
+```sql
+select
+  chain,
+  paymaster,
+  approx_count_distinct(userophash) as user_ops
+from `optimism_superchain_4337_account_abstraction_data.useroperationevent_logs_v1`
+where dt > '2025-02-01'
+group by 1,2
+order by 3 desc
 ```
 
 ### Arbitrum One
