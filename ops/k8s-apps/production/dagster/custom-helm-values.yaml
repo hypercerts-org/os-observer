@@ -36,7 +36,6 @@ spec:
             value: "1"
         resources:
           limits:
-            cpu: 1000m
             memory: 768Mi
           requests:
             cpu: 500m
@@ -48,7 +47,6 @@ spec:
             value: "1"
         resources:
           limits:
-            cpu: 1000m
             memory: 768Mi
           requests:
             cpu: 500m
@@ -69,10 +67,9 @@ spec:
               containerConfig:
                 resources:
                   limits:
-                    cpu: 1000m
                     memory: 2048Mi
                   requests:
-                    cpu: 500m
+                    cpu: 700m
                     memory: 1024Mi
         
     sqlmesh:

@@ -107,7 +107,6 @@ def all_clickhouse_dbt_mart_assets(
                                                 "memory": "1536Mi",
                                             },
                                             "limits": {
-                                                "cpu": "1000m",
                                                 "memory": "1536Mi",
                                             },
                                         },

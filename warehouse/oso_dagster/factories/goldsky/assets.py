@@ -1082,7 +1082,7 @@ def goldsky_asset(
             "container_config": {
                 "resources": {
                     "requests": {"cpu": "2000m", "memory": "3584Mi"},
-                    "limits": {"cpu": "2000m", "memory": "3584Mi"},
+                    "limits": {"memory": "3584Mi"},
                 },
             },
             "pod_spec_config": {
