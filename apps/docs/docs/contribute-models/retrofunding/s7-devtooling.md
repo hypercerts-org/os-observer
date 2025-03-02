@@ -97,6 +97,19 @@ We use the [SBOMs](https://docs.github.com/en/code-security/supply-chain-securit
 </details>
 
 <details>
+<summary>Which types of packages are considered?</summary>
+
+We primarily consider npm (JavaScript/TypeScript), crates (Rust), and pypi (Python) package links. We have some support for Go package links hosted on GitHub, although Go is generally not as relevant to the app-side of the onchain builder ecosystem.
+
+We recognize that this is not a comprehensive list of all possible package links and dependencies.
+
+In the future, we hope to include [git submodules](https://github.blog/open-source/git/working-with-submodules/) and GitHub Actions as a source of package links.
+
+We are also open to adding more crypto-specific package managers (e.g., Soldeer) in the future.
+
+</details>
+
+<details>
 <summary>Why do we use these particular thresholds?</summary>
 
 We want to exclude inactive or unproven devtooling projects that happen to appear in random code repos but have no real usage. Likewise, we want to ensure the onchain builder projects generating trust are themselves active and verifiable on OP Atlas.
@@ -128,19 +141,6 @@ Links between nodes, i.e., **edges**, are derived from the following relationshi
 
    - Whenever a developer (from the set recognized above) engages with a devtooling project (commits, PRs, issues, forks, stars, or comments), we add an edge from that developer to the devtooling project.
    - As with onchain commits, these events are grouped by month—1 PR or 10 PRs is treated as “the developer engaged in that month.”
-
-<details>
-<summary>Which types of packages are considered?</summary>
-
-We primarily consider npm (JavaScript/TypeScript), crates (Rust), and pypi (Python) package links. We have some support for Go package links hosted on GitHub, although Go is generally not as relevant to the app-side of the onchain builder ecosystem.
-
-We recognize that this is not a comprehensive list of all possible package links and dependencies.
-
-In the future, we hope to include [git submodules](https://github.blog/open-source/git/working-with-submodules/) and GitHub Actions as a source of package links.
-
-We are also open to adding more crypto-specific package managers (e.g., Soldeer) in the future.
-
-</details>
 
 <details>
 <summary>How are multiple dependencies from the same onchain project to the same devtooling project handled?</summary>
