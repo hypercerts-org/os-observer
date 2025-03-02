@@ -1,82 +1,58 @@
 MODEL (
   name metrics.int_contracts_by_project,
   kind FULL,
+  partitioned_by "artifact_namespace",
+  description "Combines directly associated contracts and derived contracts from factory deployments"
 );
 
-with contracts_in_ossd as (
-  select
+with base_contracts as (
+  select distinct
     project_id,
-    artifact_source as chain,
-    artifact_name as contract_address
-  from metrics.int_artifacts_by_project_in_ossd
+    artifact_source,
+    artifact_name
+  from metrics.int_artifacts_by_project_all_sources
   where artifact_type = 'CONTRACT'
 ),
 
-derived_contracts_by_project as (
-  select
-    deployers_by_project.project_id,
-    derived_contracts.chain,
-    derived_contracts.contract_address
-  from metrics.int_derived_contracts as derived_contracts
-  left join metrics.int_deployers_by_project as deployers_by_project
-    on
-      derived_contracts.originating_address = deployers_by_project.artifact_name
-      and derived_contracts.chain = deployers_by_project.artifact_source
-  where deployers_by_project.artifact_name is not null
+contracts_from_deployers as (
+  select distinct
+    deployers.project_id,
+    derived.chain as artifact_source,
+    derived.contract_address as artifact_name
+  from metrics.int_derived_contracts as derived
+  inner join metrics.int_deployers_by_project as deployers
+    on derived.chain = deployers.artifact_source
+    and derived.originating_address = deployers.artifact_name
 ),
 
-unified_contracts as (
-  select distinct *
-  from (
-    select
-      project_id,
-      chain,
-      contract_address
-    from contracts_in_ossd
-    union all
-    select
-      project_id,
-      chain,
-      contract_address
-    from derived_contracts_by_project
-  )
+direct_contracts as (
+  select * from base_contracts
+  union all
+  select * from contracts_from_deployers
 ),
 
-discovered_contracts as (
-  select
-    unified_contracts.project_id,
-    unified_contracts.chain,
-    factories.contract_address
+contracts_from_factories as (
+  select distinct
+    contracts.project_id,
+    contracts.artifact_source,
+    factories.contract_address as artifact_name
   from metrics.int_factories as factories
-  left join unified_contracts
-    on
-      factories.factory_address = unified_contracts.contract_address
-      and factories.chain = unified_contracts.chain
-  where unified_contracts.project_id is not null
+  inner join direct_contracts as contracts
+    on factories.chain = contracts.artifact_source
+    and factories.factory_address = contracts.artifact_name
 ),
 
-contracts_by_project as (
-  select distinct *
-  from (
-    select
-      project_id,
-      chain,
-      contract_address
-    from discovered_contracts
-    union all
-    select
-      project_id,
-      chain,
-      contract_address
-    from unified_contracts
-  )
+all_contracts as (
+  select * from direct_contracts
+  union all
+  select * from contracts_from_factories
 )
 
-select
+select distinct
   project_id,
-  @oso_id(chain, contract_address) as artifact_id,
-  chain as artifact_source,
-  contract_address as artifact_source_id,
-  LOWER(chain) as artifact_namespace,
-  contract_address as artifact_name
-from contracts_by_project
+  @oso_id(artifact_source, artifact_name) as artifact_id,
+  artifact_source,
+  artifact_name as artifact_source_id,
+  LOWER(artifact_source) as artifact_namespace,
+  artifact_name
+from all_contracts

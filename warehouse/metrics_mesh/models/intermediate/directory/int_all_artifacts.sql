@@ -12,21 +12,7 @@ MODEL (
     This may change in the future.
 #}
 
-with ossd_artifacts as (
-  select
-    project_id,
-    artifact_id,
-    artifact_source_id,
-    artifact_source,
-    artifact_type,
-    artifact_namespace,
-    artifact_name,
-    artifact_url
-  from metrics.int_artifacts_by_project_in_ossd
-  where artifact_type not in ('DEPLOYER', 'CONTRACT')
-),
-
-verified_deployers as (
+with onchain_artifacts as (
   select
     project_id,
     artifact_id,
@@ -37,9 +23,7 @@ verified_deployers as (
     artifact_name,
     artifact_name as artifact_url
   from metrics.int_deployers_by_project
-),
-
-verified_contracts as (
+  union all
   select
     project_id,
     artifact_id,
@@ -52,44 +36,6 @@ verified_contracts as (
   from metrics.int_contracts_by_project
 ),
 
-onchain_artifacts as (
-  select
-    project_id,
-    artifact_id,
-    artifact_source_id,
-    artifact_source,
-    artifact_type,
-    artifact_namespace,
-    artifact_name,
-    artifact_url
-  from verified_deployers
-  union all
-  select
-    project_id,
-    artifact_id,
-    artifact_source_id,
-    artifact_source,
-    artifact_type,
-    artifact_namespace,
-    artifact_name,
-    artifact_url
-  from verified_contracts
-),
-
-other_artifacts as (
-  select
-    project_id,
-    artifact_id,
-    artifact_source_id,
-    artifact_source,
-    artifact_type,
-    artifact_namespace,
-    artifact_name,
-    artifact_url
-  from ossd_artifacts
-  where artifact_id not in (select artifact_id from onchain_artifacts)
-),
-
 all_normalized_artifacts as (
   select
     project_id,
@@ -100,7 +46,7 @@ all_normalized_artifacts as (
     artifact_namespace,
     artifact_name,
     artifact_url
-  from other_artifacts
+  from metrics.int_artifacts_by_project_all_sources
   union all
   select
     project_id,

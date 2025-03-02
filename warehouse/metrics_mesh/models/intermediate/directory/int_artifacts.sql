@@ -7,7 +7,8 @@ MODEL (
 with all_artifacts as (
 
   {#
-    This grabs all the artifacts we know about from OSSD and from the contract discovery process.
+    This grabs all the artifacts we know about from project sources
+    and from the contract discovery process.
   #}
 
   select
